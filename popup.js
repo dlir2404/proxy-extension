@@ -1,12 +1,18 @@
-// Load trạng thái hiện tại
+// Load status
 chrome.runtime.sendMessage({ action: 'getStatus' }, (response) => {
   if (response.enabled && response.config) {
     updateStatus(true);
     fillForm(response.config);
   }
+  
+  if (response.fingerprint) {
+    displayFingerprint(response.fingerprint);
+  }
+  
+  document.getElementById('fingerprintToggle').checked = response.fingerprintEnabled !== false;
 });
 
-// Nút Bật Proxy
+// Proxy Enable
 document.getElementById('enableBtn').addEventListener('click', () => {
   const config = {
     protocol: document.getElementById('protocol').value,
@@ -33,7 +39,7 @@ document.getElementById('enableBtn').addEventListener('click', () => {
   });
 });
 
-// Nút Tắt Proxy
+// Proxy Disable
 document.getElementById('disableBtn').addEventListener('click', () => {
   chrome.runtime.sendMessage({
     action: 'toggleProxy',
@@ -47,34 +53,32 @@ document.getElementById('disableBtn').addEventListener('click', () => {
   });
 });
 
-// Nút Xóa Form
-document.getElementById('clearBtn').addEventListener('click', () => {
-  document.getElementById('protocol').value = 'http';
-  document.getElementById('host').value = '';
-  document.getElementById('port').value = '';
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
-  showMessage('Form đã được xóa', 'success');
-});
-
-// Quick Load Proxy
-document.querySelectorAll('.proxy-item').forEach(item => {
-  item.addEventListener('click', () => {
-    const proxyString = item.getAttribute('data-proxy');
-    const parts = proxyString.split(':');
-    
-    if (parts.length === 4) {
-      document.getElementById('protocol').value = 'http';
-      document.getElementById('host').value = parts[0];
-      document.getElementById('port').value = parts[1];
-      document.getElementById('username').value = parts[2];
-      document.getElementById('password').value = parts[3];
-      showMessage('Proxy đã được load!', 'success');
+// Fingerprint Toggle
+document.getElementById('fingerprintToggle').addEventListener('change', (e) => {
+  chrome.runtime.sendMessage({
+    action: 'toggleFingerprint',
+    enabled: e.target.checked
+  }, (response) => {
+    if (response.success) {
+      showMessage(e.target.checked ? '✓ Fingerprint spoofing BẬT' : '✓ Fingerprint spoofing TẮT', 'success');
+      if (response.fingerprint) {
+        displayFingerprint(response.fingerprint);
+      }
     }
   });
 });
 
-// Hàm cập nhật trạng thái
+// Regenerate Fingerprint
+document.getElementById('regenerateBtn').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ action: 'regenerateFingerprint' }, (response) => {
+    if (response.success && response.fingerprint) {
+      displayFingerprint(response.fingerprint);
+      showMessage('✓ Fingerprint mới đã được tạo!', 'success');
+    }
+  });
+});
+
+// Update status
 function updateStatus(enabled) {
   const statusDiv = document.getElementById('status');
   if (enabled) {
@@ -86,7 +90,22 @@ function updateStatus(enabled) {
   }
 }
 
-// Hàm hiển thị thông báo
+// Display fingerprint
+function displayFingerprint(fp) {
+  const infoDiv = document.getElementById('fingerprintInfo');
+  infoDiv.innerHTML = `
+    <div><strong>User-Agent:</strong> ${fp.userAgent.substring(0, 50)}...</div>
+    <div><strong>Platform:</strong> ${fp.platform}</div>
+    <div><strong>Language:</strong> ${fp.language}</div>
+    <div><strong>Screen:</strong> ${fp.screenWidth}x${fp.screenHeight}</div>
+    <div><strong>Cores:</strong> ${fp.hardwareConcurrency} | <strong>RAM:</strong> ${fp.deviceMemory}GB</div>
+    <div><strong>Timezone:</strong> ${fp.timezone}</div>
+    <div><strong>WebGL Vendor:</strong> ${fp.webgl.vendor}</div>
+    <div><strong>WebGL Renderer:</strong> ${fp.webgl.renderer}</div>
+  `;
+}
+
+// Show message
 function showMessage(text, type) {
   const messageDiv = document.getElementById('message');
   messageDiv.textContent = text;
@@ -98,7 +117,7 @@ function showMessage(text, type) {
   }, 3000);
 }
 
-// Hàm điền form
+// Fill form
 function fillForm(config) {
   document.getElementById('protocol').value = config.protocol || 'http';
   document.getElementById('host').value = config.host || '';

@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "Simple Proxy Manager",
-  "version": "1.0",
-  "description": "Quản lý proxy với authentication dễ dàng",
+  "name": "Advanced Proxy & Fingerprint Spoofer",
+  "version": "2.0",
+  "description": "Proxy xoay + Fake fingerprint tự động",
   "permissions": [
     "proxy",
     "storage",
     "webRequest",
-    "webRequestAuthProvider"
+    "declarativeNetRequest",
+    "scripting"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -21,6 +22,20 @@
       "16": "icon16.png"
     }
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["injected.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "icons": {
     "16": "icon16.png"
   }
